@@ -1,0 +1,8 @@
+Try imporving the application
+Some things that can be done:
+> Try adding more information regarding nodes in the list. Like open ports and services
+> You can definitely use concepts of OOPs here
+> Try adding a GUI Interface to the application
+> You can also show active nodes in the form of GUI and incorporate nodes from other subnet and show
+  connections among them.
+> You are allowed to add any other feature you want.
