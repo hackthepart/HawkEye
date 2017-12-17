@@ -4,8 +4,6 @@ import traceback
 import urllib2 as urllib
 BLUE, RED, WHITE, YELLOW, MAGENTA, GREEN, END = '\33[94m', '\033[91m', '\33[97m', '\33[93m', '\033[1;35m', '\033[1;32m', '\033[0m'
 
-nodelist=[]
-
 #The function returns your current working interface (wlan or wifi)
 def getDefaultInterface(returnNet=False):
     def long2net(arg):
@@ -29,8 +27,8 @@ def getDefaultInterface(returnNet=False):
         else:
             return interface
 
-#This returns your MAC address
-def getDefaultInterfaceMAC():
+#This returns your MAC address,takes in the default interface name
+def getDefaultInterfaceMAC(defaultInterface):
     try:
         defaultInterfaceMac = get_if_hwaddr(defaultInterface)
         if defaultInterfaceMac == "" or not defaultInterfaceMac:
@@ -43,16 +41,19 @@ def getDefaultInterfaceMAC():
         print("Ex. Error")
 
 #This returns your Gateway IP
-def getGatewayIP():
+#leave failSafe=true is you want the user to input the gateway in case of failure
+def getGatewayIP(failSafe=True):
     try:
         getGateway_p = sr1(IP(dst="google.com", ttl=0) / ICMP() / "XXXXXXXXXXX", verbose=False)
         return getGateway_p.src
     except:
-        # request gateway IP address (after failed detection by scapy)
-        print("\n{0}ERROR: Gateway IP could not be obtained. Please enter IP manually.{1}\n").format(RED, END)
-        header = ('{0}Scanner {1}> {2}Enter Gateway IP {3}(e.g. 192.168.1.1): '.format(BLUE, WHITE, RED, END))
-        gatewayIP = raw_input(header)
-        return gatewayIP
+	if failSafe:
+		# request gateway IP address (after failed detection by scapy)
+		print("\n{0}ERROR: Gateway IP could not be obtained. Please enter IP manually.{1}\n").format(RED, END)
+		header = ('{0}Scanner {1}> {2}Enter Gateway IP {3}(e.g. 192.168.1.1): '.format(BLUE, WHITE, RED, END))
+		gatewayIP = raw_input(header)
+        	return gatewayIP
+	
 
 #Uses API to fingerprint your device using MAC address
 def resolveMac(mac):
@@ -84,6 +85,7 @@ def scanNetwork(network):
 
 def getNodes():
     global nodelist
+    nodelist=[]
     try:
         nodelist = scanNetwork(getDefaultInterface(True))
     except KeyboardInterrupt:
@@ -98,26 +100,29 @@ def generateIPs():
     liveIPs = []
     for host in nodelist:
         liveIPs.append(host[0])
+    return liveIPs
 
-print("Running")
-defaultInterface = getDefaultInterface()
-defaultGatewayIP = getGatewayIP()
-defaultInterfaceMac = getDefaultInterfaceMAC()
-print("Network Details: ")
-print("Default Network Interface: " + defaultInterface)
-print("Your Gateway IP: " + defaultGatewayIP)
-print("Your MAC Address: " + defaultInterfaceMac)
-getNodes()
-print(nodelist) #This list contains both IP and MAC addresses
-print("IP thinggy")
-print(liveIPs) #This list only contains their IP addresses
 
-print("Real Thinggy")
-for i in range(len(liveIPs)):
-    mac = ""
-    for host in nodelist:
-        if host[0] == liveIPs[i]:
-            mac = host[1]
-    vendor = resolveMac(mac)
-    #print(mac)
-    print("  [{0}" + str(i) + "{1}] {2}" + str(liveIPs[i]) + "{3}\t" + mac + "{4}\t" + vendor + "{5}").format(YELLOW, WHITE, RED, BLUE, GREEN, END)
+if __name__=='__main__':
+	print("Running")
+	defaultInterface = getDefaultInterface()
+	defaultGatewayIP = getGatewayIP()
+	defaultInterfaceMac = getDefaultInterfaceMAC(defaultInterface)
+	print("Network Details: ")
+	print("Default Network Interface: " + defaultInterface)
+	print("Your Gateway IP: " + defaultGatewayIP)
+	print("Your MAC Address: " + defaultInterfaceMac)
+	getNodes()
+	print(nodelist) #This list contains both IP and MAC addresses
+	print("IP thinggy")
+	print(liveIPs) #This list only contains their IP addresses
+
+	print("Real Thinggy")
+	for i in range(len(liveIPs)):
+	    mac = ""
+	    for host in nodelist:
+		if host[0] == liveIPs[i]:
+		    mac = host[1]
+	    vendor = resolveMac(mac)
+	    #print(mac)
+	    print("  [{0}" + str(i) + "{1}] {2}" + str(liveIPs[i]) + "{3}\t" + mac + "{4}\t" + vendor + "{5}").format(YELLOW, WHITE, RED, BLUE, GREEN, END)
