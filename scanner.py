@@ -84,6 +84,26 @@ def scanNetwork(network):
                 pass
 
     return returnList
+    
+
+def openPorts() : 
+	import nmap
+	nm = nmap.PortScanner()
+	for host in nodelist :
+		try:
+			a = nm.scan(hosts=host[0])
+			print('{0}open Tcp ports for ip {1}'+host[0]+'{2} are {3}'+str(nm[host[0]].all_tcp())).format(YELLOW,RED,YELLOW,END)
+			
+			print('{0}open udp ports for ip {1}'+host[0]+'{2} are {3}'+str(nm[host[0]].all_udp())).format(YELLOW,RED,YELLOW,END)
+
+		except:
+			continue
+		
+	for host in nodelist :
+		a =  nm.scan(hosts=host[0],arguments= '')
+		print('{0}services for ip {1} '+host[0]+'{2} are {3}'+ a['nmap']['scaninfo']['tcp']['services']+'{4}').format(YELLOW,RED,YELLOW,BLUE,END)
+		
+	
 
 def getNodes():
     global nodelist
@@ -91,7 +111,7 @@ def getNodes():
         nodelist = scanNetwork(getDefaultInterface(True))
         #print('nodes ********************',nodelist)
     except KeyboardInterrupt:
-        printf("Terminated.")
+        print("Terminated.")
     except:
         print("Error.")
     generateIPs()
@@ -144,7 +164,7 @@ def disconnect():
 		
 		
 
-def sendPacket(my_mac,gateway_ip,target_ip,target_mac):#need to be modify a bit
+def sendPacket(my_mac,gateway_ip,target_ip,target_mac):#need to  modify a bit
 	ether = Ether()
 	ether.src = my_mac
 	ether.dst = target_mac
@@ -180,19 +200,32 @@ def main():
 	    vendor = resolveMac(mac)
 	    #print(mac)
 	    print("  [{0}" + str(i) + "{1}] {2}" + str(liveIPs[i]) + "{3}\t" + mac + "{4}\t" + vendor + "{5}").format(YELLOW, WHITE, RED, BLUE, GREEN,END)
-	    
-	try:
-		while True:
-			if len(nodelist) <=1 :
-				print("Can't kickout")
-				raise SystemExit
-			else:
-				disconnect()
-				raise SystemExit
+	 
+	
+	while True:
+		print('{0}[1]{1} list open ports and services{2}' ).format(YELLOW,WHITE,END)
+		print('{0}[2] {1}disconnect a node{2}').format(YELLOW,WHITE,END)
+		print('{0}[3]{1} Exit{2}').format(YELLOW,WHITE,END)
+		choice = raw_input(' choose your choice : ')
+		if choice == '1':
+			openPorts()
+		elif choice == '2':   
+			try:
+				while True:
+					if len(nodelist) <=1 :
+						print("{0}Can't DISCONNECT{1}").format(RED,END)
+						break
+					else:
+						disconnect()
+						break
 				
 				
-	except KeyboardInterrupt:
-		print('error!!')
+			except KeyboardInterrupt:
+				print('error!!')
+		else:
+			sys.exit("Exited")
+			
+	
 		
 				
 if __name__ == '__main__':
