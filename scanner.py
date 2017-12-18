@@ -22,7 +22,7 @@ def getDefaultInterface(returnNet=False):
 
     iface_routes = [route for route in scapy.config.conf.route.routes if route[3] == scapy.config.conf.iface and route[1] != 0xFFFFFFFF]
     #print(iface_routes)
-    network, netmask, _, interface, address,metric = max(iface_routes, key=lambda item:item[1])
+    network, netmask, _, interface, address = max(iface_routes, key=lambda item:item[1])
     net = to_CIDR_notation(network, netmask)
     if net:
         if returnNet:
@@ -31,7 +31,7 @@ def getDefaultInterface(returnNet=False):
             return interface
 
 #This returns your MAC address
-def getDefaultInterfaceMAC():
+def getDefaultInterfaceMAC(defaultInterface):
     try:
         defaultInterfaceMac = get_if_hwaddr(defaultInterface)
         if defaultInterfaceMac == "" or not defaultInterfaceMac:
@@ -44,16 +44,17 @@ def getDefaultInterfaceMAC():
         print("Ex. Error")
 
 #This returns your Gateway IP
-def getGatewayIP():
+def getGatewayIP(failSafe=True):
     try:
-        getGateway_p = sr1(IP(dst="google.com", ttl=0) / ICMP() / "XXXXXXXXXXX", verbose=False) #sr()-for sending and receiving packets
+        getGateway_p = sr1(IP(dst="google.com", ttl=0) / ICMP() / "XXXXXXXXXXX", verbose=False) 
         return getGateway_p.src
     except:
-        # request gateway IP address (after failed detection by scapy)
-        print("\n{0}ERROR: Gateway IP could not be obtained. Please enter IP manually.{1}\n").format(RED, END)
-        header = ('{0}Scanner {1}> {2}Enter Gateway IP {3}(e.g. 192.168.1.1): '.format(BLUE, WHITE, RED, END))
-        gatewayIP = raw_input(header)
-        return gatewayIP
+    	if failSafe:
+		# request gateway IP address (after failed detection by scapy)
+		print("\n{0}ERROR: Gateway IP could not be obtained. Please enter IP manually.{1}\n").format(RED, END)
+		header = ('{0}Scanner {1}> {2}Enter Gateway IP {3}(e.g. 192.168.1.1): '.format(BLUE, WHITE, RED, END))
+		gatewayIP = raw_input(header)
+		return gatewayIP
 
 #Uses API to fingerprint your device using MAC address
 def resolveMac(mac):
@@ -115,9 +116,9 @@ def openPorts() :
 
 def getNodes():
     global nodelist
+    nodelist=[]
     try:
         nodelist = scanNetwork(getDefaultInterface(True))
-        #print('nodes ********************',nodelist)
     except KeyboardInterrupt:
         print("Terminated.")
     except:
@@ -189,6 +190,6 @@ if __name__ == '__main__':
 
 	defaultInterface = getDefaultInterface()
 	defaultGatewayIP = getGatewayIP()
-	defaultInterfaceMac = getDefaultInterfaceMAC()
+	defaultInterfaceMac = getDefaultInterfaceMAC(defaultInterface)
 	getNodes()
 	main()
