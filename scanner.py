@@ -90,18 +90,26 @@ def openPorts() :
 	import nmap
 	nm = nmap.PortScanner()
 	for host in nodelist :
-		try:
-			a = nm.scan(hosts=host[0])
-			print('{0}open Tcp ports for ip {1}'+host[0]+'{2} are {3}'+str(nm[host[0]].all_tcp())).format(YELLOW,RED,YELLOW,END)
-			
-			print('{0}open udp ports for ip {1}'+host[0]+'{2} are {3}'+str(nm[host[0]].all_udp())).format(YELLOW,RED,YELLOW,END)
-
-		except:
-			continue
+		a = nm.scan(hosts=host[0])
+		b = nm[host[0]].all_tcp()
+		c = nm[host[0]].all_udp()
 		
-	for host in nodelist :
-		a =  nm.scan(hosts=host[0],arguments= '')
-		print('{0}services for ip {1} '+host[0]+'{2} are {3}'+ a['nmap']['scaninfo']['tcp']['services']+'{4}').format(YELLOW,RED,YELLOW,BLUE,END)
+		print('{0}open Tcp ports for ip {1}'+host[0]+'{2} are {3}'+str(b)).format(YELLOW,RED,YELLOW,END)
+		
+		if b:
+			for port in b :
+				print('{0}service running at port {1}' + str(port) + ' {2}is {3}' + a['scan'][host[0]]['tcp'][port]['name']+'{4}').format(WHITE,RED,WHITE,BLUE,END)
+					
+		print('{0}open udp ports for ip {1}'+host[0]+'{2} are {3}'+str(c)).format(YELLOW,RED,YELLOW,END)
+		if c:
+			for port in c :
+				print('{0}service running at port {1}' + str(port) + '{2} is {3}' + a['scan'][host[0]]['udp'][port]['name']+'{5}').format(WHITE,RED,WHITE,BLUE,END)
+			
+		
+		
+	
+		
+		
 		
 	
 
