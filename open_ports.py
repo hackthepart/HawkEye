@@ -1,3 +1,7 @@
+#To use this function ,use following commands in scanner.py
+#import open_ports
+#open_ports.openPorts()
+
 import scanner
 YELLOW = scanner.YELLOW
 RED = scanner.RED
