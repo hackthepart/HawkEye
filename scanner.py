@@ -93,6 +93,7 @@ def getNodes():
     except:
         print("Error.")
     generateIPs()
+    return nodelist
 
 #Create list of IPs that were found live
 def generateIPs():
